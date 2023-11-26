@@ -87,3 +87,7 @@ celerybeat-schedule
 # .venv3.11/
 # .venv3.12/
 # .venv3.13/
+
+/.cloud/
+.cloud/
+/.cloud

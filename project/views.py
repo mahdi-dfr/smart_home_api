@@ -9,7 +9,7 @@ from rest_framework import status
 
 from .models import Project, Room, BoardType, ProjectBoards, NodeType, NodeProject, Device, ProjectScenario
 from .serializer import ProjectSerializer, RoomSerializer, BoardTypeSerializer, ProjectBoardsSerializer, \
-    NodeTypeSerializer, NodeProjectSerializer, DeviceSerializer, ScenarioSerializer
+    NodeTypeSerializer, NodeProjectSerializer, DeviceSerializer, ScenarioSerializer, DevicePostSerializer
 from . import permissions
 
 
@@ -135,7 +135,7 @@ class NodeProjectView(ModelViewSet):
 
         elif board_type.name == '3':
             for i in range(1, 13):
-                relay_data = {'node_type': 4, 'board_project': board_project.id, 'project': data['project'],
+                relay_data = {'node_type': 1, 'board_project': board_project.id, 'project': data['project'],
                               'is_active': False,
                               'unique_id': i}
                 serializer = NodeProjectSerializer(data=relay_data)
@@ -210,6 +210,18 @@ class DeviceViewSet(ModelViewSet):
         node.save()
 
         instance.delete()
+
+    def get_queryset(self):
+        project = self.request.query_params['project']
+        room = self.request.query_params['room']
+        if self.request.method == 'GET':
+            return Device.objects.filter(project=project, room=room)
+        return super().get_queryset()
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return DeviceSerializer
+        return DevicePostSerializer
 
 
 class DeviceScenario(RetrieveUpdateDestroyAPIView):
