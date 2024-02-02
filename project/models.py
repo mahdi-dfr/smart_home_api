@@ -84,7 +84,7 @@ class ProjectBoards(models.Model):
                                           related_name='sms_board', null=True)
     control_wifi_board = models.ForeignKey('self', on_delete=models.CASCADE, verbose_name='برد وای فای مربوطه',
                                            related_name='wifi_board', null=True)
-    unique_id = models.SmallIntegerField(verbose_name='شناسه ی برد', blank=True, default=0)
+    unique_id = models.SmallIntegerField(verbose_name='شناسه ی برد', blank=True, default=1)
     node = models.ManyToManyField(NodeType, verbose_name='نود های برد', related_name='board_node',
                                   through='project.NodeProject')
     created_at = models.DateTimeField(auto_now_add=True, blank=True, verbose_name='تاریخ ایجاد')
@@ -104,7 +104,7 @@ class NodeProject(models.Model):
     board_project = models.ForeignKey(ProjectBoards, on_delete=models.CASCADE, verbose_name='بردهای انتخابی',
                                       related_name='board_project')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, verbose_name='پروژه', related_name='project_node')
-    unique_id = models.SmallIntegerField(verbose_name='شناسه ی نود', blank=True, default=0)
+    unique_id = models.SmallIntegerField(verbose_name='شناسه ی نود', blank=True, default=1)
     is_active = models.BooleanField(default=False, verbose_name='فعال بودن نود')
 
 
@@ -147,6 +147,7 @@ class Device(models.Model):
     node_project = models.ForeignKey(NodeProject, on_delete=models.CASCADE, related_name='node_project',
                                      verbose_name='نود',
                                      null=False, blank=False, default=1)
+    event_id = models.IntegerField(verbose_name='رویداد', default=0, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, blank=True, verbose_name='تاریخ ایجاد')
     delete_at = models.DateTimeField(auto_now=True, blank=True, verbose_name='تاریخ حذف')
     update_at = models.DateTimeField(auto_now=True, blank=True, verbose_name='تاریخ حذف')
@@ -160,14 +161,12 @@ class ProjectScenario(models.Model):
         verbose_name = 'سناریو'
         verbose_name_plural = 'سناریو ها'
 
-    name = models.CharField(max_length=100, null=False, blank=False)
-    project = models.ForeignKey(Project, related_name='project_scenario', on_delete=models.CASCADE,
-                                verbose_name='پروژه ی سناریو',
-                                null=False)
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='rooms_scenario', verbose_name='اتاق سناریو',
-                             null=False)
-    device = models.ForeignKey(Device, on_delete=models.CASCADE, related_name='device_scenario',
-                               verbose_name='تجهیز سناریو', null=False)
+    device = models.ForeignKey(Device, null=False, blank=False, verbose_name='تجهیز', on_delete=models.CASCADE,
+                               related_name='device_scenario')
+    user = models.ForeignKey('user.User', null=False, blank=False, verbose_name='کاربر', on_delete=models.CASCADE,
+                             related_name='user_scenario')
+    STATUS = [('0', 'خاموش'), ('1', 'روشن')]
+    status = models.CharField(max_length=1, default='0', verbose_name='وضعیت سناریو', choices=STATUS)
 
     def __str__(self):
-        return f'{self.name} - {self.room}'
+        return f'{self.device} - {self.status}'

@@ -4,6 +4,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import generics
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 
@@ -59,8 +60,10 @@ class RoomView(ModelViewSet):
     serializer_class = RoomSerializer
 
     def get_queryset(self):
-        project = self.request.query_params.get('project')
-        return Room.objects.filter(project=project)
+        project_id = self.request.query_params.get('project')
+        project_user = Project.objects.get(id=project_id).user
+        if self.request.user == project_user:
+            return Room.objects.filter(project=project_id)
 
 
 class BoardTypeView(ModelViewSet):
@@ -191,6 +194,8 @@ class DeviceViewSet(ModelViewSet):
     pagination_class = None
     queryset = Device.objects.all()
     serializer_class = DeviceSerializer
+    filterset_fields = ['device_type']
+    ordering_fields = "__all__"
 
     def perform_create(self, serializer):
         serializer.save()

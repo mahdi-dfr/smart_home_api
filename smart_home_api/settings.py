@@ -145,6 +145,7 @@ REST_FRAMEWORK = {
 
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+
     'ACCESS_TOKEN_LIFETIME': datetime.timedelta(
         days=20,
 

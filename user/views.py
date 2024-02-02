@@ -1,19 +1,32 @@
 from django.shortcuts import render
-from rest_framework.generics import CreateAPIView
+from rest_framework.generics import RetrieveUpdateDestroyAPIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework.status import HTTP_201_CREATED
 
-from .serializer import RegisterSerializer
+from acu.user_permissions import UserPersonalInformation
+from .models import User
+from .serializer import RegisterSerializer, UserInfoSerializer
 
 
 # Create your views here.
 
-class RegisterView(CreateAPIView):
+class UserManagement(ModelViewSet):
+    permission_classes = [UserPersonalInformation, ]
     serializer_class = RegisterSerializer
+    queryset = User.objects.all()
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True, )
-        serializer.save()
 
-        return Response(status=HTTP_201_CREATED, data={"status": "success"})
+class MeView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserInfoSerializer
+
+    def get_object(self):
+        return self.request.user
+
+    def get(self, request, *args, **kwargs):
+        serializer = self.get_serializer(instance=self.request.user)
+        return Response(serializer.data)
+
+

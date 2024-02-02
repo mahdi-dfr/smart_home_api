@@ -1,3 +1,5 @@
+from django.contrib.auth import get_user_model
+from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import ModelSerializer
 
 from utilities.serializer_helper import CustomSlugRelatedField
@@ -58,6 +60,7 @@ class NodeTypeSerializer(ModelSerializer):
 
 class NodeProjectSerializer(ModelSerializer):
     node_type = CustomSlugRelatedField(slug_field='name', queryset=NodeType.objects.all())
+    board_project = CustomSlugRelatedField(slug_field='unique_id', queryset=ProjectBoards.objects.all())
 
     class Meta:
         model = NodeProject
@@ -100,6 +103,9 @@ class DevicePostSerializer(ModelSerializer):
 
 
 class ScenarioSerializer(ModelSerializer):
+    device = CustomSlugRelatedField(slug_field='name', queryset=Device.objects.all(), )
+    user = CustomSlugRelatedField(slug_field='username', queryset=get_user_model().objects.all(), )
+
     class Meta:
         model = ProjectScenario
         fields = '__all__'

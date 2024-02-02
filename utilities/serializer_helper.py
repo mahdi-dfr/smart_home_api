@@ -1,9 +1,15 @@
+import datetime
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.encoding import smart_str
+from persiantools.jdatetime import JalaliDate
 from rest_framework import serializers
+from rest_framework.serializers import SlugRelatedField
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import ChoiceField
+from rest_framework.fields import ChoiceField, DateField
 from rest_framework.relations import RelatedField
+
+from utilities.utility import jalali_to_gregorian, gregorian_to_jalali
 
 
 def build_filters(request_data: dict, user_filter: dict) -> dict:
@@ -16,13 +22,17 @@ def build_filters(request_data: dict, user_filter: dict) -> dict:
     return result
 
 
-class CustomFilterMixin(RelatedField):
-    def __init__(self, filter_params=None, force_filter=False, **kwargs):
+class CustomSlugRelatedField(SlugRelatedField):
+
+    def __init__(self, filter_params=None, force_filter=False, use_on_select=True, is_many=False, slug_field=None,
+                 **kwargs):
 
         self.filter_params = filter_params
         self.force_filter = force_filter
+        self.use_on_select = use_on_select
+        self.is_many = is_many
 
-        super().__init__(**kwargs)
+        super().__init__(slug_field, **kwargs)
 
     def get_queryset(self):
         if self.read_only or not self.filter_params:
@@ -40,13 +50,6 @@ class CustomFilterMixin(RelatedField):
 
         return self.queryset.filter(**usable_filter)
 
-
-class FilterAblePrimaryKeyRelatedField(CustomFilterMixin, serializers.PrimaryKeyRelatedField):
-    pass
-
-
-class CustomSlugRelatedField(CustomFilterMixin, serializers.SlugRelatedField):
-
     def to_internal_value(self, data):
         queryset = self.get_queryset()
         try:
@@ -56,8 +59,22 @@ class CustomSlugRelatedField(CustomFilterMixin, serializers.SlugRelatedField):
         except (TypeError, ValueError):
             self.fail('invalid')
 
+    def to_representation(self, obj):
+        if not self.use_on_select:
+            return super().to_representation(obj)
 
-class NestedObjectRelatedField(serializers.RelatedField):
+        data = {
+            'value': getattr(obj, 'id'),
+            'text': super().to_representation(obj)
+        }
+
+        if self.is_many:
+            return data
+
+        return [data]
+
+
+class NestedObjectRelatedField(RelatedField):
     def __init__(self, rep_serializer, input_field='id', **kwargs):
         assert rep_serializer is not None, 'The `rep_serializer` argument is required.'
         assert input_field is not None, 'The `input_field` argument is required.'
@@ -81,4 +98,26 @@ class NestedObjectRelatedField(serializers.RelatedField):
 class DisplayTextChoicesField(ChoiceField):
 
     def to_representation(self, value):
-        return self.choices.get(super().to_representation(value))
+        if value in ('', None):
+            return [{}]
+        return [{
+            'value': value,
+            'text': self.choices.get(value)
+        }]
+
+
+class JalaliDateField(serializers.DateField):
+    def to_representation(self, value):
+        if value:
+            jalali_date = JalaliDate(value.year, value.month, value.day)
+            return f"{jalali_date.year}-{jalali_date.month:02d}-{jalali_date.day:02d}"
+        return None
+
+    def to_internal_value(self, value):
+        try:
+            jalali_date_parts = [int(part) for part in value.split('/')]
+            georgian_date = JalaliDate(*jalali_date_parts).to_gregorian()
+            return georgian_date
+        except (ValueError, IndexError):
+            raise serializers.ValidationError("فرمت تاریخ اشتباه است. از این فرمت استفاده کنید: 'YYYY/MM/DD'. ")
+
