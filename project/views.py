@@ -79,7 +79,7 @@ class NodeTypeViewSet(ModelViewSet):
 
 
 class ProjectBoardsView(ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ]
     queryset = ProjectBoards.objects.all()
     serializer_class = ProjectBoardsSerializer
 
@@ -239,7 +239,27 @@ class DeviceScenario(RetrieveUpdateDestroyAPIView):
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
-class ScenarioViewSet(ModelViewSet):
+class ScenarioViewSet(APIView):
     permission_classes = [IsAuthenticated]
-    queryset = ProjectScenario.objects.all()
-    serializer_class = ScenarioSerializer
+
+    # queryset = ProjectScenario.objects.all()
+    # serializer_class = ScenarioSerializer
+
+    def post(self, request):
+        data = request.data
+
+        for i in data:
+            serializer = ScenarioSerializer(data=i)
+            if serializer.is_valid():
+                serializer.save(user=request.user)
+            else:
+                return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'status': 'success'}, status=status.HTTP_201_CREATED)
+
+    def get(self, request):
+        queryset = ProjectScenario.objects.filter(user=request.user.id,)
+        serializer_class = ScenarioSerializer(instance=queryset, many=True)
+        return Response(serializer_class.data, status=status.HTTP_200_OK)
+
+

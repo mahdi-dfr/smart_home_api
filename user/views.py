@@ -5,7 +5,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework.status import HTTP_201_CREATED
 
-from acu.user_permissions import UserPersonalInformation
+from acu.user_permissions import IsOwnUser
 from .models import User
 from .serializer import RegisterSerializer, UserInfoSerializer
 
@@ -13,7 +13,7 @@ from .serializer import RegisterSerializer, UserInfoSerializer
 # Create your views here.
 
 class UserManagement(ModelViewSet):
-    permission_classes = [UserPersonalInformation, ]
+    permission_classes = [IsOwnUser, ]
     serializer_class = RegisterSerializer
     queryset = User.objects.all()
 

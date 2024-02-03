@@ -165,6 +165,8 @@ class ProjectScenario(models.Model):
                                related_name='device_scenario')
     user = models.ForeignKey('user.User', null=False, blank=False, verbose_name='کاربر', on_delete=models.CASCADE,
                              related_name='user_scenario')
+    TYPE = [('0', '1'), ('1', '2'), ('2', '3'), ('3', '4'), ]
+    type = models.CharField(max_length=1, verbose_name='نوع', null=True, blank=True, choices=TYPE)
     STATUS = [('0', 'خاموش'), ('1', 'روشن')]
     status = models.CharField(max_length=1, default='0', verbose_name='وضعیت سناریو', choices=STATUS)
 

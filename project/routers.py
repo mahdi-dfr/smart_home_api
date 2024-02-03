@@ -12,10 +12,11 @@ router.register('project_board', ProjectBoardsView, basename='project_board')
 router.register('room', RoomView, basename='room')
 router.register('node_project', NodeProjectView, basename='room')
 router.register('device', DeviceViewSet, basename='device')
-router.register('scenario', ScenarioViewSet, basename='device')
+# router.register('scenario', ScenarioViewSet, basename='scenario')
 
 urlpatterns = [
     path('control_boards/', ControlBoardView.as_view(), name='control_boards'),
     path('device_nodes/', DeviceNodeViewSet.as_view(), name='device_nodes'),
     path('device_scenario/', DeviceScenario.as_view(), name='device_scenario'),
+    path('scenario/', ScenarioViewSet.as_view(), name='scenario'),
               ] + router.urls

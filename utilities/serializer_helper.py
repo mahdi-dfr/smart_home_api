@@ -2,14 +2,11 @@ import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.encoding import smart_str
-from persiantools.jdatetime import JalaliDate
 from rest_framework import serializers
 from rest_framework.serializers import SlugRelatedField
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import ChoiceField, DateField
 from rest_framework.relations import RelatedField
-
-from utilities.utility import jalali_to_gregorian, gregorian_to_jalali
 
 
 def build_filters(request_data: dict, user_filter: dict) -> dict:
@@ -106,18 +103,18 @@ class DisplayTextChoicesField(ChoiceField):
         }]
 
 
-class JalaliDateField(serializers.DateField):
-    def to_representation(self, value):
-        if value:
-            jalali_date = JalaliDate(value.year, value.month, value.day)
-            return f"{jalali_date.year}-{jalali_date.month:02d}-{jalali_date.day:02d}"
-        return None
-
-    def to_internal_value(self, value):
-        try:
-            jalali_date_parts = [int(part) for part in value.split('/')]
-            georgian_date = JalaliDate(*jalali_date_parts).to_gregorian()
-            return georgian_date
-        except (ValueError, IndexError):
-            raise serializers.ValidationError("فرمت تاریخ اشتباه است. از این فرمت استفاده کنید: 'YYYY/MM/DD'. ")
-
+# class JalaliDateField(serializers.DateField):
+#     def to_representation(self, value):
+#         if value:
+#             jalali_date = JalaliDate(value.year, value.month, value.day)
+#             return f"{jalali_date.year}-{jalali_date.month:02d}-{jalali_date.day:02d}"
+#         return None
+#
+#     def to_internal_value(self, value):
+#         try:
+#             jalali_date_parts = [int(part) for part in value.split('/')]
+#             georgian_date = JalaliDate(*jalali_date_parts).to_gregorian()
+#             return georgian_date
+#         except (ValueError, IndexError):
+#             raise serializers.ValidationError("فرمت تاریخ اشتباه است. از این فرمت استفاده کنید: 'YYYY/MM/DD'. ")
+#

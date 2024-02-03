@@ -104,8 +104,9 @@ class DevicePostSerializer(ModelSerializer):
 
 class ScenarioSerializer(ModelSerializer):
     device = CustomSlugRelatedField(slug_field='name', queryset=Device.objects.all(), )
-    user = CustomSlugRelatedField(slug_field='username', queryset=get_user_model().objects.all(), )
+    user = CustomSlugRelatedField(slug_field='username', queryset=get_user_model().objects.all(), required= False)
 
     class Meta:
         model = ProjectScenario
         fields = '__all__'
+        depth = 0
