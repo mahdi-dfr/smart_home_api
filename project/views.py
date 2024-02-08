@@ -217,11 +217,15 @@ class DeviceViewSet(ModelViewSet):
         instance.delete()
 
     def get_queryset(self):
-        project = self.request.query_params['project']
-        room = self.request.query_params['room']
-        if self.request.method == 'GET':
-            return Device.objects.filter(project=project, room=room)
-        return super().get_queryset()
+        base_queryset = Device.objects.filter(project=self.request.query_params['project'])
+
+        if 'type' in self.request.query_params:
+            base_queryset = base_queryset.filter(device_type=self.request.query_params['type'])
+
+        if self.request.method == 'GET' and 'room' in self.request.query_params:
+            base_queryset = base_queryset.filter(room=self.request.query_params['room'])
+
+        return base_queryset
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -258,8 +262,8 @@ class ScenarioViewSet(APIView):
         return Response({'status': 'success'}, status=status.HTTP_201_CREATED)
 
     def get(self, request):
-        queryset = ProjectScenario.objects.filter(user=request.user.id,)
+        project = self.request.query_params['project']
+        type = self.request.query_params['type']
+        queryset = ProjectScenario.objects.filter(user=request.user.id, project=project, type=type)
         serializer_class = ScenarioSerializer(instance=queryset, many=True)
         return Response(serializer_class.data, status=status.HTTP_200_OK)
-
-

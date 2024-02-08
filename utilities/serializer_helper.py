@@ -102,7 +102,6 @@ class DisplayTextChoicesField(ChoiceField):
             'text': self.choices.get(value)
         }]
 
-
 # class JalaliDateField(serializers.DateField):
 #     def to_representation(self, value):
 #         if value:
