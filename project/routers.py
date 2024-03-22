@@ -19,4 +19,5 @@ urlpatterns = [
     path('device_nodes/', DeviceNodeViewSet.as_view(), name='device_nodes'),
     path('device_scenario/', DeviceScenario.as_view(), name='device_scenario'),
     path('scenario/', ScenarioViewSet.as_view(), name='scenario'),
+    path('scenario/<int:pk>/', ScenarioViewSet.as_view(), name='scenario'),
               ] + router.urls

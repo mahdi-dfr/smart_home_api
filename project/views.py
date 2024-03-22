@@ -1,5 +1,5 @@
 from django.db.models import Q
-from rest_framework.generics import RetrieveUpdateDestroyAPIView
+from rest_framework.generics import RetrieveUpdateDestroyAPIView, get_object_or_404
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -9,6 +9,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 
 from .models import Project, Room, BoardType, ProjectBoards, NodeType, NodeProject, Device, ProjectScenario
+from .permissions import IsUser
 from .serializer import ProjectSerializer, RoomSerializer, BoardTypeSerializer, ProjectBoardsSerializer, \
     NodeTypeSerializer, NodeProjectSerializer, DeviceSerializer, ScenarioSerializer, DevicePostSerializer
 from . import permissions
@@ -244,7 +245,8 @@ class DeviceScenario(RetrieveUpdateDestroyAPIView):
 
 
 class ScenarioViewSet(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsUser]
+    pagination_class = None
 
     # queryset = ProjectScenario.objects.all()
     # serializer_class = ScenarioSerializer
@@ -267,3 +269,11 @@ class ScenarioViewSet(APIView):
         queryset = ProjectScenario.objects.filter(user=request.user.id, project=project, type=type)
         serializer_class = ScenarioSerializer(instance=queryset, many=True)
         return Response(serializer_class.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, pk):
+        try:
+            scenario = ProjectScenario.objects.get(pk=pk, user=request.user.id)
+            scenario.delete()
+            return Response({'status': 'deleted'}, status=status.HTTP_204_NO_CONTENT)
+        except ProjectScenario.DoesNotExist:
+            return Response({'error': 'Scenario not found'}, status=status.HTTP_404_NOT_FOUND)
