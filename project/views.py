@@ -1,4 +1,5 @@
 from django.db.models import Q
+from rest_framework.decorators import action
 from rest_framework.generics import RetrieveUpdateDestroyAPIView, get_object_or_404
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -8,10 +9,11 @@ from rest_framework import generics
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 
-from .models import Project, Room, BoardType, ProjectBoards, NodeType, NodeProject, Device, ProjectScenario
+from .models import Project, Room, BoardType, Board, NodeType, Node, Device, HardwareScenario, SoftwareScenario
 from .permissions import IsUser
 from .serializer import ProjectSerializer, RoomSerializer, BoardTypeSerializer, ProjectBoardsSerializer, \
-    NodeTypeSerializer, NodeProjectSerializer, DeviceSerializer, ScenarioSerializer, DevicePostSerializer
+    NodeTypeSerializer, NodeProjectSerializer, DeviceSerializer, HardwareScenarioSerializer, DevicePostSerializer, \
+    SoftwareScenarioSerializer
 from . import permissions
 
 
@@ -34,8 +36,8 @@ class ControlBoardView(RetrieveUpdateDestroyAPIView):
 
     def get(self, request, *args, **kwargs):
         project = self.request.query_params['project']
-        sms_queryset = ProjectBoards.objects.filter(project=project, board_type=1)
-        wifi_queryset = ProjectBoards.objects.filter(project=project, board_type=2)
+        sms_queryset = Board.objects.filter(project=project, board_type=1)
+        wifi_queryset = Board.objects.filter(project=project, board_type=2)
 
         # queryset = ProjectBoards.objects.filter(Q(Q(project=project, board_type=0) | Q(project=project, board_type=1)))
         sms_serializer = ProjectBoardsSerializer(instance=sms_queryset, many=True)
@@ -81,13 +83,15 @@ class NodeTypeViewSet(ModelViewSet):
 
 class ProjectBoardsView(ModelViewSet):
     permission_classes = [IsAuthenticated, ]
-    queryset = ProjectBoards.objects.all()
+    queryset = Board.objects.all()
     serializer_class = ProjectBoardsSerializer
 
     def perform_create(self, serializer):
+        # todo: fix now showing parent_sms_board and  parent_wifi_board in serializer
+        print(self.request.data)
         project = self.request.data['project']
         board = self.request.data['board_type']
-        queryset = ProjectBoards.objects.filter(project=project, board_type=board)
+        queryset = Board.objects.filter(project=project, board_type=board)
         if queryset:
             last_item = queryset.last()
             unique_id = last_item.unique_id
@@ -98,8 +102,8 @@ class ProjectBoardsView(ModelViewSet):
     def get_queryset(self):
         project = self.request.query_params.get('project')
         if project is not None:
-            return ProjectBoards.objects.filter(project=project)
-        return ProjectBoards.objects.all()
+            return Board.objects.filter(project=project)
+        return Board.objects.all()
 
 
 class NodeTypeView(ModelViewSet):
@@ -111,12 +115,12 @@ class NodeTypeView(ModelViewSet):
 class NodeProjectView(ModelViewSet):
     pagination_class = None
     permission_classes = [IsAuthenticated]
-    queryset = NodeProject.objects.all()
+    queryset = Node.objects.all()
     serializer_class = NodeProjectSerializer
 
     def create(self, request, *args, **kwargs):
         data = request.data
-        board_project = ProjectBoards.objects.get(id=data['board_project'])
+        board_project = Board.objects.get(id=data['board_project'])
         board_type = board_project.board_type
 
         if board_type.name == '2':
@@ -185,7 +189,7 @@ class DeviceNodeViewSet(RetrieveUpdateDestroyAPIView):
         project = self.request.query_params['project']
         node = self.request.query_params['node']
         node_type = NodeType.objects.get(name=node)
-        inactive_nodes = NodeProject.objects.filter(project=project, node_type=node_type.id, is_active=False)
+        inactive_nodes = Node.objects.filter(project=project, node_type=node_type.id, is_active=False)
         serializer = NodeProjectSerializer(instance=inactive_nodes, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
@@ -203,7 +207,7 @@ class DeviceViewSet(ModelViewSet):
 
         data = self.request.data
         node_project = data['node_project']
-        node = NodeProject.objects.get(id=node_project)
+        node = Node.objects.get(id=node_project)
         node.is_active = True
         node.save()
         return Response(data=serializer.data, status=status.HTTP_201_CREATED)
@@ -211,7 +215,7 @@ class DeviceViewSet(ModelViewSet):
     def perform_destroy(self, instance):
         device = Device.objects.get(id=instance.id)
         node_id = device.node_project.id
-        node = NodeProject.objects.get(id=node_id)
+        node = Node.objects.get(id=node_id)
         node.is_active = False
         node.save()
 
@@ -244,36 +248,85 @@ class DeviceScenario(RetrieveUpdateDestroyAPIView):
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
-class ScenarioViewSet(APIView):
-    permission_classes = [IsAuthenticated, IsUser]
+class HardwareScenarioViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated]
     pagination_class = None
+    queryset = HardwareScenario.objects.all()
+    serializer_class = HardwareScenarioSerializer
 
-    # queryset = ProjectScenario.objects.all()
-    # serializer_class = ScenarioSerializer
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
-    def post(self, request):
-        data = request.data
+    def get_queryset(self):
+        if self.request.method == 'GET':
+            project = self.request.query_params.get('project')
+            type = self.request.query_params.get('type')
+            if project and type:
+                return HardwareScenario.objects.filter(user=self.request.user.id, project=project, type=type)
+            return []
+        return super().get_queryset()
 
-        for i in data:
-            serializer = ScenarioSerializer(data=i)
-            if serializer.is_valid():
-                serializer.save(user=request.user)
-            else:
-                return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    @action(methods=['GET'], detail=False, )
+    def get_scenario_message(self, request,):
+        project_id = self.request.query_params.get('project')
+        scenario_id = self.request.query_params.get('scenario')
 
-        return Response({'status': 'success'}, status=status.HTTP_201_CREATED)
+        scenario = get_object_or_404(HardwareScenario, id=scenario_id)
+        total_boards = Board.objects.filter(project=project_id, board_type__name='3').count()
+        used_boards = HardwareScenario.objects.prefetch_related('device').get(id=scenario_id)
 
-    def get(self, request):
-        project = self.request.query_params['project']
-        type = self.request.query_params['type']
-        queryset = ProjectScenario.objects.filter(user=request.user.id, project=project, type=type)
-        serializer_class = ScenarioSerializer(instance=queryset, many=True)
-        return Response(serializer_class.data, status=status.HTTP_200_OK)
+        device_board_ids = [device.project_board.unique_id for device in used_boards.device.all()]
+        device_node_id = [device.node_project.unique_id for device in used_boards.device.all()]
+        device_id = [device.id for device in used_boards.device.all()]
+        relay_board_used = set(device_board_ids)
+        device_node_used = set(device_node_id)
+        total_used_boards = len(relay_board_used)
+        total_used_node = len(device_node_used)
+        key_num = scenario.type
+        status = False if scenario.status == '0' else True
+        node_ids_list = []
+        for i in relay_board_used:
+            node_ids_list.append(str(i) + ':')
+            for j in device_id:
+                device = Device.objects.get(id=j)
 
-    def delete(self, request, pk):
-        try:
-            scenario = ProjectScenario.objects.get(pk=pk, user=request.user.id)
-            scenario.delete()
-            return Response({'status': 'deleted'}, status=status.HTTP_204_NO_CONTENT)
-        except ProjectScenario.DoesNotExist:
-            return Response({'error': 'Scenario not found'}, status=status.HTTP_404_NOT_FOUND)
+                if device.project_board.unique_id == i:
+                    node_ids_list.append(str(device.node_project.unique_id) + ',')
+            node_ids_list.append('|')
+
+        node_ids = ''.join(node_ids_list)[:-1]
+        print(node_ids)
+        response_data = {
+            'type': 'add_hardware_scenario',
+            'key_num': key_num,
+            'total_board_ids': total_boards,
+            'total_board_ids_used': total_used_boards,
+            'node_ids': node_ids,
+            'status': status
+        }
+        return Response(response_data, status=200)
+
+
+class SoftwareScenarioViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+    queryset = SoftwareScenario.objects.all()
+    serializer_class = SoftwareScenarioSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_queryset(self):
+        if self.request.method == 'GET':
+            project = self.request.query_params.get('project')
+            if project:
+                return SoftwareScenario.objects.filter(user=self.request.user.id, project=project, )
+            return []
+        return super().get_queryset()
+
+    # @action(methods=['GET'], detail=False, )
+    # def get_scenario_message(self, request, pk=None):
+    #     # scenario = ProjectScenario.objects.get(id=pk)
+    #     project_id = self.request.query_params.get('project')
+    #     board = Board.objects.filter(project=project_id, board_type__name='3').count
+    #     print(board)

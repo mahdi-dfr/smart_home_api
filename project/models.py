@@ -70,7 +70,7 @@ class NodeType(models.Model):
         return f'{self.name}'
 
 
-class ProjectBoards(models.Model):
+class Board(models.Model):
     class Meta:
         verbose_name = 'برد پروژه'
         verbose_name_plural = 'برد های پروژه'
@@ -86,7 +86,7 @@ class ProjectBoards(models.Model):
                                            related_name='wifi_board', null=True)
     unique_id = models.SmallIntegerField(verbose_name='شناسه ی برد', blank=True, default=1)
     node = models.ManyToManyField(NodeType, verbose_name='نود های برد', related_name='board_node',
-                                  through='project.NodeProject')
+                                  through='project.Node')
     created_at = models.DateTimeField(auto_now_add=True, blank=True, verbose_name='تاریخ ایجاد')
     delete_at = models.DateTimeField(auto_now=True, blank=True, verbose_name='تاریخ حذف')
     update_at = models.DateTimeField(auto_now=True, blank=True, verbose_name='تاریخ حذف')
@@ -95,13 +95,13 @@ class ProjectBoards(models.Model):
         return f'{self.name}'
 
 
-class NodeProject(models.Model):
+class Node(models.Model):
     class Meta:
         verbose_name = 'نود پروژه'
         verbose_name_plural = 'نودهای پروژه'
 
     node_type = models.ForeignKey(NodeType, on_delete=models.CASCADE, verbose_name='نود ها', related_name='node')
-    board_project = models.ForeignKey(ProjectBoards, on_delete=models.CASCADE, verbose_name='بردهای انتخابی',
+    board_project = models.ForeignKey(Board, on_delete=models.CASCADE, verbose_name='بردهای انتخابی',
                                       related_name='board_project')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, verbose_name='پروژه', related_name='project_node')
     unique_id = models.SmallIntegerField(verbose_name='شناسه ی نود', blank=True, default=1)
@@ -144,9 +144,11 @@ class Device(models.Model):
                    ('6', 'کلید سه تایمر'),
                    ('7', 'چشمی ها و سنسور تشخیص حرکت'), ]
     device_type = models.CharField(max_length=1, choices=DEVICE_TYPE, null=False, verbose_name='نوع تجهیز', default='0')
-    node_project = models.ForeignKey(NodeProject, on_delete=models.CASCADE, related_name='node_project',
+    node_project = models.ForeignKey(Node, on_delete=models.CASCADE, related_name='node_project',
                                      verbose_name='نود',
                                      null=False, blank=False, default=1)
+    project_board = models.ForeignKey(Board, on_delete=models.CASCADE, verbose_name='برد مرتبط',
+                                      related_name='board_device', null=True, blank=True)
     event_id = models.IntegerField(verbose_name='رویداد', default=0, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, blank=True, verbose_name='تاریخ ایجاد')
     delete_at = models.DateTimeField(auto_now=True, blank=True, verbose_name='تاریخ حذف')
@@ -156,19 +158,39 @@ class Device(models.Model):
         return f'{self.name} - {self.room}'
 
 
-class ProjectScenario(models.Model):
+class HardwareScenario(models.Model):
     class Meta:
-        verbose_name = 'سناریو'
-        verbose_name_plural = 'سناریو ها'
+        verbose_name = 'سناریو سخت افزاری'
+        verbose_name_plural = 'سناریو های سخت افزاری'
 
-    device = models.ForeignKey(Device, null=False, blank=False, verbose_name='تجهیز', on_delete=models.CASCADE,
-                               related_name='device_scenario')
+    name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام سناریو', unique=True)
+    device = models.ManyToManyField(Device, verbose_name='تجهیز',
+                                    related_name='device_scenario')
     user = models.ForeignKey('user.User', null=False, blank=False, verbose_name='کاربر', on_delete=models.CASCADE,
                              related_name='user_scenario')
     project = models.ForeignKey(Project, null=False, blank=False, verbose_name='پروژه', on_delete=models.CASCADE,
                                 related_name='project_scenario')
-    TYPE = [('0', '1'), ('1', '2'), ('2', '3'), ('3', '4'), ]
+    TYPE = [('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'), ]
     type = models.CharField(max_length=1, verbose_name='نوع', null=True, blank=True, choices=TYPE)
+    STATUS = [('0', 'خاموش'), ('1', 'روشن')]
+    status = models.CharField(max_length=1, default='0', verbose_name='وضعیت سناریو', choices=STATUS)
+
+    def __str__(self):
+        return f'{self.device} - {self.status}'
+
+
+class SoftwareScenario(models.Model):
+    class Meta:
+        verbose_name = 'سناریو نرم افزاری'
+        verbose_name_plural = 'سناریو های نرم افزاری'
+
+    name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام سناریو', unique=True)
+    device = models.ManyToManyField(Device, verbose_name='تجهیز',
+                                    related_name='device_scenario_software')
+    user = models.ForeignKey('user.User', null=False, blank=False, verbose_name='کاربر', on_delete=models.CASCADE,
+                             related_name='user_scenario_software')
+    project = models.ForeignKey(Project, null=False, blank=False, verbose_name='پروژه', on_delete=models.CASCADE,
+                                related_name='project_scenario_software')
     STATUS = [('0', 'خاموش'), ('1', 'روشن')]
     status = models.CharField(max_length=1, default='0', verbose_name='وضعیت سناریو', choices=STATUS)
 

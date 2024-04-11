@@ -3,7 +3,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import ModelSerializer
 
 from utilities.serializer_helper import CustomSlugRelatedField
-from .models import Project, Room, BoardType, ProjectBoards, NodeType, Device, ProjectScenario, NodeProject
+from .models import Project, Room, BoardType, Board, NodeType, Device, HardwareScenario, Node, SoftwareScenario
 
 
 class ProjectSerializer(ModelSerializer):
@@ -26,9 +26,21 @@ class BoardTypeSerializer(ModelSerializer):
 
 
 class ProjectBoardsSerializer(ModelSerializer):
+    control_sms_board = CustomSlugRelatedField(slug_field='name', queryset=Board.objects.all(), required=False)
+    control_wifi_board = CustomSlugRelatedField(slug_field='name', queryset=Board.objects.all(), required=False)
+
     class Meta:
-        model = ProjectBoards
+        model = Board
         fields = '__all__'
+
+    # def validate(self, attrs):
+    #     if attrs['board_type'] != '1' or attrs['board_type'] != '2':
+    #         print('ssss')
+    #         print(attrs)
+    #         if attrs['control_sms_board'] or attrs['control_wifi_board']:
+    #             return attrs
+    #         raise ValidationError('لطفا برد پیامکی یا وای فای کنترل کننده را مشخص نمایید')
+    #     return attrs
 
 
 class NodeTypeSerializer(ModelSerializer):
@@ -63,7 +75,7 @@ class NodeProjectSerializer(ModelSerializer):
     # board_project = CustomSlugRelatedField(slug_field='unique_id', queryset=ProjectBoards.objects.all())
 
     class Meta:
-        model = NodeProject
+        model = Node
         fields = '__all__'
 
     def to_representation(self, instance):
@@ -102,10 +114,19 @@ class DevicePostSerializer(ModelSerializer):
         fields = '__all__'
 
 
-class ScenarioSerializer(ModelSerializer):
+class HardwareScenarioSerializer(ModelSerializer):
     user = CustomSlugRelatedField(slug_field='username', queryset=get_user_model().objects.all(), required=False)
 
     class Meta:
-        model = ProjectScenario
+        model = HardwareScenario
+        fields = '__all__'
+        depth = 0
+
+
+class SoftwareScenarioSerializer(ModelSerializer):
+    user = CustomSlugRelatedField(slug_field='username', queryset=get_user_model().objects.all(), required=False)
+
+    class Meta:
+        model = SoftwareScenario
         fields = '__all__'
         depth = 0
