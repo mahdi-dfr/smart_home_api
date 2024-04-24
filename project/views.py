@@ -345,7 +345,7 @@ class SoftwareScenarioViewSet(ModelViewSet):
             return []
         return super().get_queryset()
 
-    @action( detail=False, url_path='get_software_message/(?P<pk>[^/.]+)')
+    @action(methods=['GET'], detail=False, url_path='get_software_message/(?P<pk>[^/.]+)')
     def get_scenario_message(self, request, pk=None):
         scenario_id = pk
 
