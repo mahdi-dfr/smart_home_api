@@ -1,5 +1,7 @@
 from django.db.models import Q
+from django.http import Http404
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import RetrieveUpdateDestroyAPIView, get_object_or_404
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -9,6 +11,7 @@ from rest_framework import generics
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 
+from utilities.views_helper import remove_unwanted_commas
 from .models import Project, Room, BoardType, Board, NodeType, Node, Device, HardwareScenario, SoftwareScenario
 from .permissions import IsUser
 from .serializer import ProjectSerializer, RoomSerializer, BoardTypeSerializer, ProjectBoardsSerializer, \
@@ -222,15 +225,17 @@ class DeviceViewSet(ModelViewSet):
         instance.delete()
 
     def get_queryset(self):
-        base_queryset = Device.objects.filter(project=self.request.query_params['project'])
+        device_type = self.request.query_params.get('type')
+        project = self.request.query_params.get('project')
+        room = self.request.query_params.get('room')
 
-        if 'type' in self.request.query_params:
-            base_queryset = base_queryset.filter(device_type=self.request.query_params['type'])
-
-        if self.request.method == 'GET' and 'room' in self.request.query_params:
-            base_queryset = base_queryset.filter(room=self.request.query_params['room'])
-
-        return base_queryset
+        if project:
+            if room:
+                return Device.objects.filter(project=project, room=room)
+            elif device_type:
+                return Device.objects.filter(project=project, device_type=device_type)
+            else:
+                raise Http404('please enter room or type as query parameter')
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -255,7 +260,14 @@ class HardwareScenarioViewSet(ModelViewSet):
     serializer_class = HardwareScenarioSerializer
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        key_num = self.request.data.get('type')
+        print(key_num)
+        project = self.request.data.get('project')
+        scenario = HardwareScenario.objects.filter(type=key_num, project=project, user=self.request.user)
+        if len(scenario) > 0:
+            raise ValidationError('شما قبلا برای این پنل سناریو تنظیم کرده اید',)
+        else:
+            serializer.save(user=self.request.user)
 
     def get_queryset(self):
         if self.request.method == 'GET':
@@ -267,7 +279,7 @@ class HardwareScenarioViewSet(ModelViewSet):
         return super().get_queryset()
 
     @action(methods=['GET'], detail=False, )
-    def get_scenario_message(self, request,):
+    def get_scenario_message(self, request, ):
         project_id = self.request.query_params.get('project')
         scenario_id = self.request.query_params.get('scenario')
 
@@ -296,12 +308,16 @@ class HardwareScenarioViewSet(ModelViewSet):
 
         node_ids = ''.join(node_ids_list)[:-1]
         print(node_ids)
+
+        cleaned_string = node_ids.replace(",|", "|").rstrip(",")
+
+        print(cleaned_string)
         response_data = {
             'type': 'add_hardware_scenario',
             'key_num': key_num,
             'total_board_ids': total_boards,
             'total_board_ids_used': total_used_boards,
-            'node_ids': node_ids,
+            'node_ids': remove_unwanted_commas(node_ids),
             'status': status
         }
         return Response(response_data, status=200)
@@ -314,7 +330,12 @@ class SoftwareScenarioViewSet(ModelViewSet):
     serializer_class = SoftwareScenarioSerializer
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        project = self.request.data.get('project')
+        software_scenario = SoftwareScenario.objects.filter(user=self.request.user, project=project)
+        if len(software_scenario) <= 6:
+            serializer.save(user=self.request.user)
+        else:
+            raise serializer.ValidationError('نمیتوانید بیشتر از 6 سناریو بسازید')
 
     def get_queryset(self):
         if self.request.method == 'GET':
@@ -324,9 +345,35 @@ class SoftwareScenarioViewSet(ModelViewSet):
             return []
         return super().get_queryset()
 
-    # @action(methods=['GET'], detail=False, )
-    # def get_scenario_message(self, request, pk=None):
-    #     # scenario = ProjectScenario.objects.get(id=pk)
-    #     project_id = self.request.query_params.get('project')
-    #     board = Board.objects.filter(project=project_id, board_type__name='3').count
-    #     print(board)
+    @action(methods=['GET'], detail=False, url_path='get_software_message/(?P<pk>[^/.]+)')
+    def get_scenario_message(self, request, pk=None):
+        scenario_id = pk
+
+        scenario = get_object_or_404(SoftwareScenario, id=scenario_id)
+        used_boards = SoftwareScenario.objects.prefetch_related('device').get(id=scenario_id)
+
+        device_board_ids = [device.project_board.unique_id for device in used_boards.device.all()]
+        device_id = [device.id for device in used_boards.device.all()]
+        relay_board_used = set(device_board_ids)
+        total_used_boards = len(relay_board_used)
+        status = False if scenario.status == '0' else True
+        node_ids_list = []
+        for i in relay_board_used:
+            node_ids_list.append(str(i) + ':')
+            for j in device_id:
+                device = Device.objects.get(id=j)
+
+                if device.project_board.unique_id == i:
+                    node_ids_list.append(str(device.node_project.unique_id) + ',')
+            node_ids_list.append('|')
+
+        node_ids = ''.join(node_ids_list)[:-1]
+
+        response_data = {
+            'type': 'add_software_scenario',
+            'scenario_id': scenario_id,
+            'total_board_ids_used': total_used_boards,
+            'node_ids': remove_unwanted_commas(node_ids),
+            'status': status
+        }
+        return Response(response_data, status=200)

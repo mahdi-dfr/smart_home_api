@@ -2,8 +2,6 @@ from django.db.models import ProtectedError
 from rest_framework.exceptions import ValidationError
 from rest_framework.mixins import DestroyModelMixin
 
-from setting.models import Log
-
 
 class SavingByRoleMixin:
     """
@@ -45,21 +43,29 @@ class DestroyProtectedMixin(DestroyModelMixin):
             raise ValidationError('این مورد به دلیل استفاده شدن توسط دیگر اشیا قابل حذف نیست!')
 
 
-class LogActivityMixin:
-    def log_activity(self, action, details=None):
-        user = self.request.user
-        Log.objects.create(user=user, action=action, details=details)
+def remove_unwanted_commas(text):
+    """
+    This function removes the comma before the pipe (|) and the last comma in a string,
+    handling cases with one or two parts.
+
+    Args:
+        text: The string to be processed.
+
+    Returns:
+        The modified string with the unwanted commas removed.
+    """
+    # Split the string by the pipe (|) delimiter.
+    parts = text.split("|")
+
+    if len(parts) == 1:
+        # Handle case with one part: remove only the last comma
+        return text.rstrip(",")
+    else:
+        # Handle case with two parts: remove comma before pipe and last comma
+        parts[0] = parts[0].rstrip(",")
+        parts[-1] = parts[-1].rstrip(",")
+
+    # Join the parts back together with a pipe (|) delimiter.
+    return "|".join(parts)
 
 
-class CreateUpdateMixin(LogActivityMixin):
-    def perform_create(self, serializer):
-        self.log_activity('create data in:  Model')
-        serializer.save()
-
-    def perform_update(self, serializer):
-        self.log_activity('update data in:  Model')
-        serializer.save()
-
-    def perform_destroy(self, instance):
-        self.log_activity('delete data in : Model')
-        instance.delete()
