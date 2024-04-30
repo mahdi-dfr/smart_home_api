@@ -265,7 +265,7 @@ class HardwareScenarioViewSet(ModelViewSet):
         project = self.request.data.get('project')
         scenario = HardwareScenario.objects.filter(type=key_num, project=project, user=self.request.user)
         if len(scenario) > 0:
-            raise ValidationError('شما قبلا برای این پنل سناریو تنظیم کرده اید',)
+            raise ValidationError('شما قبلا برای این پنل سناریو تنظیم کرده اید', )
         else:
             serializer.save(user=self.request.user)
 
@@ -277,6 +277,18 @@ class HardwareScenarioViewSet(ModelViewSet):
                 return HardwareScenario.objects.filter(user=self.request.user.id, project=project, type=type)
             return []
         return super().get_queryset()
+
+    @action(methods=['DELETE'], detail=False)
+    def delete_hardware_scenario(self, request):
+        project_id = request.query_params.get('project_id')
+        panel_type = request.query_params.get('type')
+
+        try:
+            hardware = HardwareScenario.objects.get(project=project_id, type=panel_type)
+            hardware.delete()
+            return Response(data={'message': 'success'}, status=204)
+        except HardwareScenario.DoesNotExist:
+            return Response(data={'message': 'failed'}, status=400)
 
     @action(methods=['GET'], detail=False, )
     def get_scenario_message(self, request, ):

@@ -82,23 +82,23 @@ WSGI_APPLICATION = 'smart_home_api.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'smart_home_db',
-            'USER': 'postgres',
-            'PASSWORD': '123456789',
-            'HOST': 'localhost',
-            'PORT': '5432',
-        }
-
     # 'default': {
     #     'ENGINE': 'django.db.backends.postgresql',
-    #     'NAME': 'smarthomxsk_db',
+    #     'NAME': 'smart_home_db',
     #     'USER': 'postgres',
-    #     'PASSWORD': 'x24Qt8oYLHgunIXQtgwg',
-    #     'HOST': 'smarthomedb2-pyo-service',
+    #     'PASSWORD': '123456789',
+    #     'HOST': 'localhost',
     #     'PORT': '5432',
     # }
+    #
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'smarthomxsk_db',
+        'USER': 'postgres',
+        'PASSWORD': 'x24Qt8oYLHgunIXQtgwg',
+        'HOST': 'smarthomedb2-pyo-service',
+        'PORT': '5432',
+    }
 
 }
 

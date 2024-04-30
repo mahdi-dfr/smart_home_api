@@ -73,6 +73,7 @@ class NodeTypeSerializer(ModelSerializer):
 class NodeProjectSerializer(ModelSerializer):
     # node_type = CustomSlugRelatedField(slug_field='name', queryset=NodeType.objects.all())
     # board_project = CustomSlugRelatedField(slug_field='unique_id', queryset=ProjectBoards.objects.all())
+    # board_project = ProjectBoardsSerializer()
 
     class Meta:
         model = Node
@@ -102,6 +103,7 @@ class NodeProjectSerializer(ModelSerializer):
 
 class DeviceSerializer(ModelSerializer):
     node_project = NodeProjectSerializer()
+    project_board = ProjectBoardsSerializer()
 
     class Meta:
         model = Device

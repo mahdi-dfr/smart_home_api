@@ -186,7 +186,7 @@ class SoftwareScenario(models.Model):
 
     name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام سناریو', unique=True)
     device = models.ManyToManyField(Device, verbose_name='تجهیز',
-                                    related_name='device_scenario_software')
+                                    related_name='device_scenario_software',)
     user = models.ForeignKey('user.User', null=False, blank=False, verbose_name='کاربر', on_delete=models.CASCADE,
                              related_name='user_scenario_software')
     project = models.ForeignKey(Project, null=False, blank=False, verbose_name='پروژه', on_delete=models.CASCADE,
