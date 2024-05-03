@@ -163,7 +163,6 @@ class HardwareScenario(models.Model):
         verbose_name = 'سناریو سخت افزاری'
         verbose_name_plural = 'سناریو های سخت افزاری'
 
-    name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام سناریو', unique=True)
     device = models.ManyToManyField(Device, verbose_name='تجهیز',
                                     related_name='device_scenario')
     user = models.ForeignKey('user.User', null=False, blank=False, verbose_name='کاربر', on_delete=models.CASCADE,
@@ -186,11 +185,12 @@ class SoftwareScenario(models.Model):
 
     name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام سناریو', unique=True)
     device = models.ManyToManyField(Device, verbose_name='تجهیز',
-                                    related_name='device_scenario_software',)
+                                    related_name='device_scenario_software', )
     user = models.ForeignKey('user.User', null=False, blank=False, verbose_name='کاربر', on_delete=models.CASCADE,
                              related_name='user_scenario_software')
     project = models.ForeignKey(Project, null=False, blank=False, verbose_name='پروژه', on_delete=models.CASCADE,
                                 related_name='project_scenario_software')
+    unique_id = models.SmallIntegerField(verbose_name='شناسه ی سناریو', blank=True, default=1)
     STATUS = [('0', 'خاموش'), ('1', 'روشن')]
     status = models.CharField(max_length=1, default='0', verbose_name='وضعیت سناریو', choices=STATUS)
 

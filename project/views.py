@@ -278,10 +278,9 @@ class HardwareScenarioViewSet(ModelViewSet):
             return []
         return super().get_queryset()
 
-    @action(methods=['DELETE'], detail=False)
-    def delete_hardware_scenario(self, request):
-        project_id = request.query_params.get('project_id')
-        panel_type = request.query_params.get('type')
+    def perform_destroy(self, instance):
+        project_id = self.request.query_params.get('project')
+        panel_type = self.request.query_params.get('type')
 
         try:
             hardware = HardwareScenario.objects.get(project=project_id, type=panel_type)
@@ -289,6 +288,18 @@ class HardwareScenarioViewSet(ModelViewSet):
             return Response(data={'message': 'success'}, status=204)
         except HardwareScenario.DoesNotExist:
             return Response(data={'message': 'failed'}, status=400)
+
+    # @action(methods=['DELETE'], detail=False)
+    # def delete_hardware_scenario(self, request):
+    #     project_id = request.query_params.get('project_id')
+    #     panel_type = request.query_params.get('type')
+    #
+    #     try:
+    #         hardware = HardwareScenario.objects.get(project=project_id, type=panel_type)
+    #         hardware.delete()
+    #         return Response(data={'message': 'success'}, status=204)
+    #     except HardwareScenario.DoesNotExist:
+    #         return Response(data={'message': 'failed'}, status=400)
 
     @action(methods=['GET'], detail=False, )
     def get_scenario_message(self, request, ):
@@ -344,10 +355,17 @@ class SoftwareScenarioViewSet(ModelViewSet):
     def perform_create(self, serializer):
         project = self.request.data.get('project')
         software_scenario = SoftwareScenario.objects.filter(user=self.request.user, project=project)
-        if len(software_scenario) <= 6:
-            serializer.save(user=self.request.user)
-        else:
-            raise serializer.ValidationError('نمیتوانید بیشتر از 6 سناریو بسازید')
+
+        if software_scenario:
+            print(len(software_scenario))
+            if len(software_scenario) <= 6:
+                last_item = software_scenario.last()
+                unique_id = last_item.unique_id
+                serializer.validated_data['unique_id'] = unique_id + 1
+                serializer.save(user=self.request.user)
+            else:
+                raise ValidationError('نمیتوانید بیشتر از 6 سناریو بسازید')
+        serializer.save(user=self.request.user)
 
     def get_queryset(self):
         if self.request.method == 'GET':
@@ -383,7 +401,7 @@ class SoftwareScenarioViewSet(ModelViewSet):
 
         response_data = {
             'type': 'add_software_scenario',
-            'scenario_id': scenario_id,
+            'scenario_id': scenario.unique_id,
             'total_board_ids_used': total_used_boards,
             'node_ids': remove_unwanted_commas(node_ids),
             'status': status
