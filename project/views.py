@@ -261,13 +261,9 @@ class HardwareScenarioViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         key_num = self.request.data.get('type')
-        print(key_num)
         project = self.request.data.get('project')
         scenario = HardwareScenario.objects.filter(type=key_num, project=project, user=self.request.user)
-        if len(scenario) > 0:
-            raise ValidationError('شما قبلا برای این پنل سناریو تنظیم کرده اید', )
-        else:
-            serializer.save(user=self.request.user)
+        serializer.save(user=self.request.user)
 
     def get_queryset(self):
         if self.request.method == 'GET':
@@ -289,17 +285,17 @@ class HardwareScenarioViewSet(ModelViewSet):
         except HardwareScenario.DoesNotExist:
             return Response(data={'message': 'failed'}, status=400)
 
-    # @action(methods=['DELETE'], detail=False)
-    # def delete_hardware_scenario(self, request):
-    #     project_id = request.query_params.get('project_id')
-    #     panel_type = request.query_params.get('type')
-    #
-    #     try:
-    #         hardware = HardwareScenario.objects.get(project=project_id, type=panel_type)
-    #         hardware.delete()
-    #         return Response(data={'message': 'success'}, status=204)
-    #     except HardwareScenario.DoesNotExist:
-    #         return Response(data={'message': 'failed'}, status=400)
+    @action(methods=['DELETE'], detail=False)
+    def delete_hardware_scenario(self, request):
+        project_id = request.query_params.get('project_id')
+        panel_type = request.query_params.get('type')
+
+        try:
+            hardware = HardwareScenario.objects.get(project=project_id, type=panel_type)
+            hardware.delete()
+            return Response(data={'message': 'success'}, status=204)
+        except HardwareScenario.DoesNotExist:
+            return Response(data={'message': 'failed'}, status=400)
 
     @action(methods=['GET'], detail=False, )
     def get_scenario_message(self, request, ):

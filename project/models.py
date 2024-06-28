@@ -183,7 +183,7 @@ class SoftwareScenario(models.Model):
         verbose_name = 'سناریو نرم افزاری'
         verbose_name_plural = 'سناریو های نرم افزاری'
 
-    name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام سناریو', unique=True)
+    name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام سناریو', unique=False)
     device = models.ManyToManyField(Device, verbose_name='تجهیز',
                                     related_name='device_scenario_software', )
     user = models.ForeignKey('user.User', null=False, blank=False, verbose_name='کاربر', on_delete=models.CASCADE,

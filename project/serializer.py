@@ -72,12 +72,14 @@ class NodeTypeSerializer(ModelSerializer):
 
 class NodeProjectSerializer(ModelSerializer):
     # node_type = CustomSlugRelatedField(slug_field='name', queryset=NodeType.objects.all())
-    # board_project = CustomSlugRelatedField(slug_field='unique_id', queryset=ProjectBoards.objects.all())
+    board_project = CustomSlugRelatedField(slug_field='name', queryset=Board.objects.all(),)
+
     # board_project = ProjectBoardsSerializer()
 
     class Meta:
         model = Node
         fields = '__all__'
+        # depth = 1
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
